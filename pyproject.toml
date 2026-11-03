@@ -1,0 +1,56 @@
+[project]
+name = "time-management-system"
+version = "0.1.0"
+description = "Google Calendar-inspired time management backend (modular monolith)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy[asyncio]>=2.0.30,<2.1",
+    "aiomysql>=0.2.0",
+    # PyMySQL 1.2 removed `escape_bytes_prefixed`, which aiomysql still calls for every
+    # bytes parameter -> breaks all BINARY(16) UUID writes. Remove the cap once aiomysql fixes it.
+    "pymysql>=1.1,<1.2",
+    "cryptography>=42",          # required by MySQL 8 caching_sha2_password auth
+    "alembic>=1.13",
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3",
+    "redis>=5.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "httpx>=0.27",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[tool.uv]
+package = false   # this is an application, not a library: nothing to build/install
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+# One event loop for the whole session so session-scoped async resources
+# (engine, redis) can be shared safely between tests.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = ["integration: needs real MySQL and Redis (docker compose up)"]
+addopts = "-ra --strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["migrations/"]

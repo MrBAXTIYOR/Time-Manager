@@ -1,0 +1,53 @@
+# Local development infrastructure. Run: docker compose up --build
+services:
+  api:
+    build:
+      context: .
+      target: dev
+    env_file: .env
+    ports: ["8000:8000"]
+    volumes:
+      - ./app:/app/app          # live reload
+      - ./tests:/app/tests
+      - ./migrations:/app/migrations
+    depends_on:
+      mysql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  mysql:
+    image: mysql:8.0
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci",
+              "--default-time-zone=+00:00"]   # sessions run in UTC
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports: ["3306:3306"]        # exposed for local tools; remove in shared environments
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:                       # catches outgoing email (used from Step 3)
+    image: axllent/mailpit
+    ports: ["8025:8025", "1025:1025"]   # web UI / SMTP
+
+volumes:
+  mysql_data:
+  redis_data:
