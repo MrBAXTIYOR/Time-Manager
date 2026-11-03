@@ -21,3 +21,5 @@ FastAPI · SQLAlchemy 2.0 async · MySQL 8 · Redis · Alembic · Pytest · Dock
 ## Migrations
     make revision m="add users"     # autogenerate, then REVIEW the file
     make migrate
+=======
+# Time-Manager
